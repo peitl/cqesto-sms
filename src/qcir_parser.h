@@ -5,20 +5,22 @@
  * Copyright (C) 2023, Mikolas Janota
  */
 #pragma once
-#include "stream_buffer.h"
-#include <algorithm>
-#include <cstddef>
-#include <sstream>
-#include <string>
+#include "stream_buffer.h" // for StreamBuffer
+#include <cstddef>         // for size_t
+#include <sstream>         // for ostream, stringstream
+#include <string>          // for string, basic_string
+#include <utility>         // for pair
 class QCIRParser {
   public:
     QCIRParser(StreamBuffer &buf) : d_buf(buf) {}
     void parse();
     std::string d_filename; // only err reporting
+    bool found_header() const { return d_found_header; }
 
   protected:
     size_t d_ln = 1;
-    enum QType { FORALL, EXIST };
+    bool d_found_header = false;
+    enum QType { FORALL, EXIST, FREE };
     enum GType { AND, OR, XOR, ITE };
     typedef std::pair<bool, std::string> Lit;
     StreamBuffer &d_buf;
@@ -39,6 +41,7 @@ class QCIRParser {
     void format_id();
     void qblock_prefix();
     bool qblock_quant();
+    bool free_quant();
     void var_list();
     std::string var();
     void lit_list();
@@ -46,7 +49,6 @@ class QCIRParser {
     void nltoken();
     void nlchar();
     int skip();
-    void skip_end_of_line();
     void match_string(const char *s, bool run_skip = true);
     void match_char_token(char c);
     void match_char(char c);
@@ -54,6 +56,7 @@ class QCIRParser {
         skip();
         return *d_buf;
     }
+    void skip_line();
     std::ostream &err();
     std::stringstream d_varbuf;
 };

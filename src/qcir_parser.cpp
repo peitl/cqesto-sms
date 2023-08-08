@@ -7,8 +7,10 @@
 #include "qcir_parser.h"
 #include "auxiliary.h"
 #include "stream_buffer.h"
-#include <cctype>
-#include <cstdlib>
+#include <cassert>
+#include <cctype>   // for isalnum
+#include <cstdlib>  // for exit
+#include <iostream> // for cerr
 
 void QCIRParser::parse() { qcir_file(); }
 void QCIRParser::qcir_file() {
@@ -23,25 +25,27 @@ void QCIRParser::qcir_file() {
 }
 
 void QCIRParser::format_id() {
-    bool found = false;
-    // even though it's not permitted in the format, try to avoid comments
-    // before the header
-    while (!found) {
+    d_found_header = false;
+    // even though it's not permitted in the format, we try to avoid comments
+    // before the header, we also allow files without headers, because this is
+    // apparently the practice
+    while (!d_found_header && *d_buf == '#') {
         match_char('#');
         if (*d_buf == 'Q') {
             match_string("qcir-", false);
             if (*d_buf == 'g' or *d_buf == 'G')
                 ++d_buf;
             match_string("14", false);
-            found = true;
-        } else {
-            while (*d_buf != '\n' && *d_buf != '\r' && *d_buf != EOF)
-                ++d_buf;
-            if (*d_buf != EOF)
-                nlchar();
+            d_found_header = true;
         }
+        skip_line();
     }
-    nltoken();
+}
+
+void QCIRParser::skip_line() {
+    while (*d_buf != '\n' && *d_buf != '\r' && *d_buf != EOF)
+        ++d_buf;
+    nlchar();
 }
 
 void QCIRParser::output_stmt() {
@@ -95,26 +99,14 @@ void QCIRParser::gate_stmt() {
 }
 
 void QCIRParser::qblock_prefix() {
+    free_quant();
     while (!is_end()) {
         if (!qblock_quant())
             break;
     }
 }
 
-bool QCIRParser::qblock_quant() {
-    skip();
-
-    switch (*d_buf) {
-    case 'e':
-        match_string("exists");
-        cb_qblock_quant(QType::EXIST);
-        break;
-    case 'f':
-        match_string("forall");
-        cb_qblock_quant(QType::FORALL);
-        break;
-    default: return false;
-    }
+void QCIRParser::var_list() {
     match_char_token('(');
     while (next() != ')') {
         cb_qblock_var(var());
@@ -123,6 +115,35 @@ bool QCIRParser::qblock_quant() {
     }
     match_char_token(')');
     nltoken();
+}
+
+bool QCIRParser::free_quant() {
+    skip();
+    if (*d_buf != 'f' && *d_buf != 'F')
+        return false;
+    match_string("free");
+    cb_qblock_quant(QType::FREE);
+    var_list();
+    cb_quant_closed();
+    return true;
+}
+
+bool QCIRParser::qblock_quant() {
+    skip();
+    switch (*d_buf) {
+    case 'e':
+    case 'E':
+        match_string("exists");
+        cb_qblock_quant(QType::EXIST);
+        break;
+    case 'f':
+    case 'F':
+        match_string("forall");
+        cb_qblock_quant(QType::FORALL);
+        break;
+    default: return false;
+    }
+    var_list();
     cb_quant_closed();
     return true;
 }
@@ -190,16 +211,8 @@ void QCIRParser::match_char_token(char c) {
 
 std::ostream &QCIRParser::err() {
     if (d_filename.empty())
-        return std::cerr << "ERROR on line" << d_ln << ":";
+        return std::cerr << "ERROR on line " << d_ln << ":";
     return std::cerr << d_filename << ":" << d_ln << ":";
-}
-
-void QCIRParser::skip_end_of_line() {
-    while (true) {
-        if (*d_buf == EOF)
-            return;
-        ++d_buf;
-    }
 }
 
 int QCIRParser::skip() {

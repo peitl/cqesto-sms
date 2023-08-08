@@ -25,6 +25,8 @@ class Options {
     bool polarities;
     bool full;
     bool luby_restart;
+    bool enumerate;
     int verbose;
     SMSOptions sms_args;
+    bool has_free = false;
 };
