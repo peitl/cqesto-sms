@@ -9,6 +9,7 @@ endif()
 
 option(USE_CADICAL "Use cadical as the base solver" OFF)
 option(USE_CMS "Use cms as the base solver" OFF)
+option(USE_SMS "Use SAT modulo symmetries" OFF)
 option(STATIC_BINARY "Compile static" OFF)
 
 # Add sanitizer flags for C++ compiler for "Debug" configuration
@@ -114,6 +115,35 @@ elseif(USE_CMS)
   set(THREADS_PREFER_PTHREAD_FLAG ON)
   find_package(Threads REQUIRED)
   target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC Threads::Threads)
+elseif(USE_SMS)
+  message(STATUS "Using SMS")
+  include_directories(contrib/minisat/include)
+  include_directories(../sms-cpp-impl/src)
+  find_library(CADICAL_LIBRARY
+    NAMES cadical
+    HINTS "../sms-cpp-impl/cadical-master/build"
+    )
+  if(NOT CADICAL_LIBRARY)
+    message(FATAL_ERROR "CADICAL library not found")
+  else()
+    message(STATUS "Found ${CADICAL_LIBRARY}")
+  endif()
+  add_library(cadical STATIC IMPORTED GLOBAL)
+  set_target_properties(cadical PROPERTIES IMPORTED_LOCATION ${CADICAL_LIBRARY})
+
+  find_library(SMS_LIBRARY
+    NAMES sms
+    )
+  if(NOT SMS_LIBRARY)
+	message(FATAL_ERROR "SMS library not found")
+  else()
+	message(STATUS "Found ${SMS_LIBRARY}")
+  endif()
+  add_library(sms STATIC IMPORTED GLOBAL)
+  set_target_properties(sms PROPERTIES IMPORTED_LOCATION ${SMS_LIBRARY})
+
+  target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE USE_SMS=1)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC sms cadical)
 else()
   include_directories(contrib/minisat/include)
   message(STATUS "Using minisat")

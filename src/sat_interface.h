@@ -32,6 +32,16 @@ typedef std::vector<SATSPC::Lit> SATCLS;
 inline void SATCLS_PUSH(SATCLS &c, const SATSPC::Lit &l) { c.push_back(l); }
 inline void SATCLS_CAPACITY(SATCLS &c, size_t cap) { c.reserve(cap); }
 
+#elif USE_SMS
+#define SATSPC Minisat
+
+#include "sms_wrap.h"
+
+typedef SATSPC::SMSWrap SATSOLVER; // this is SMS-enhanced Cadical
+typedef SATSPC::vec<SATSPC::Lit> SATCLS;
+inline void SATCLS_PUSH(SATCLS &c, const SATSPC::Lit &l) { c.push(l); }
+inline void SATCLS_CAPACITY(SATCLS &c, size_t cap) { c.capacity(cap); }
+
 #else
 
 #define SATSPC Minisat

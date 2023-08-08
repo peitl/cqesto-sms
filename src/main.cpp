@@ -72,6 +72,7 @@ int main(int argc, char **argv) {
                  "the beginning.")
         ->default_val(true);
     app.add_flag("-v", options.verbose, "Add verbosity.")->default_val(0);
+    app.add_option("-n", options.sms_args.vertices, "when using SMS, pass the number of vertices here");
     CLI11_PARSE(app, argc, argv);
 
     const bool use_std = options.file_name == "-";
@@ -94,8 +95,8 @@ int main(int argc, char **argv) {
         var2name[i.second] = i.first;
     qesto::NiceExpressionPrinter *dprn =
         new qesto::NiceExpressionPrinter(factory, var2name, cout);
-    ps = new qesto::ZigZag(options, factory, parser.formula());
-    ps->dprn = dprn;
+    ps = new qesto::ZigZag(options, factory, parser.formula(), dprn);
+    //ps->set_printer(dprn);
     const bool r = ps->solve();
     std::cout << "c solved " << read_cpu_time() << std::endl;
     ps->print_stats(cerr);

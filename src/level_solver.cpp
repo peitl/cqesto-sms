@@ -21,6 +21,9 @@ std::mt19937 LevelSolver::rgen(1);
 LevelSolver::LevelSolver(const Options &options, Expressions &factory,
                          size_t lev, const LevelInfo &levs)
     : options(options), factory(factory), lev(lev), levs(levs),
+#ifdef USE_SMS
+    sat(SATSOLVER(lev == 0 ? options.sms_args.vertices : 2)),
+#endif
       enc(factory, sat, variable_manager), simpl(options, factory, enc),
       pol(factory, enc) {}
 

@@ -13,8 +13,8 @@ namespace qesto {
 
 class ZigZag {
   public:
-    ZigZag(const Options &options, Expressions &factory, const QFla &qf)
-        : options(options), factory(factory), levels(qf.pref), formula(qf),
+    ZigZag(const Options &options, Expressions &factory, const QFla &qf, NiceExpressionPrinter *dprn)
+        : dprn(dprn), options(options), factory(factory), levels(qf.pref), formula(qf),
           conflict_count(0), verb(options.verbose) {
         if (options.verbose > 3) {
             std::cerr << "input" << std::endl;

@@ -6,6 +6,12 @@
  */
 #pragma once
 #include <string>
+
+class SMSOptions {
+  public:
+    int vertices;
+};
+
 class Options {
   public:
     Options() {}
@@ -20,4 +26,5 @@ class Options {
     bool full;
     bool luby_restart;
     int verbose;
+    SMSOptions sms_args;
 };
