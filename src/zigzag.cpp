@@ -18,6 +18,7 @@ using SATSPC::mkLit;
 
 void ZigZag::init() {
     solvers.resize(levels->qlev_count() + 1, NULL);
+    lvl_cflt_cnt.resize(levels->qlev_count() + 1, 0);
     for (size_t ql = 0; ql <= levels->qlev_count(); ++ql) {
         const QuantifierType qt =
             ql < levels->qlev_count()
@@ -163,6 +164,7 @@ lbool ZigZag::solve_(int confl_budget) {
             }
             ++lev;
         } else {
+            ++lvl_cflt_cnt[lev];
             ++conflict_count;
             if (confl_budget > 0)
                 confl_budget--;

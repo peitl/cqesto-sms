@@ -39,6 +39,9 @@ class ZigZag {
     bool solve();
     int solve_all();
     std::ostream &print_stats(std::ostream &o) {
+        for (size_t lev = 0; lev <= levels->qlev_count(); lev++) {
+          o << "c bt_count @ " << lev << ":" << lvl_cflt_cnt[lev] << std::endl;
+        }
         return o << "c bt_count:" << conflict_count << std::endl;
     }
 
@@ -62,6 +65,7 @@ class ZigZag {
     QFla formula;
     std::vector<LevelSolver *> solvers;
     size_t conflict_count;
+    std::vector<size_t> lvl_cflt_cnt;
     void init();
     int verb;
 };
