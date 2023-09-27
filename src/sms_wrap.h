@@ -13,7 +13,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "solveCadicalClass.hpp"
+#include "cadicalSMS.hpp"
 
 namespace SATSPC {
 std::ostream &operator<<(std::ostream &outs, Minisat::Lit lit);
@@ -22,6 +22,7 @@ class SMSWrap {
     inline const Minisat::LSet &get_conflict() { return _conflict; }
     inline const Minisat::vec<Minisat::lbool> &model() { return _model; }
     SMSWrap(int vertices = 2) :_nvars(0), sms(SolverConfig(vertices)) {}
+    SMSWrap(int vertices, int cutoff) :_nvars(0), sms(SolverConfig(vertices, cutoff)) {}
 
     //virtual ~IPASIRWrap() { ipasir_release(_s); }
 
