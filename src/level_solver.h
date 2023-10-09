@@ -35,6 +35,9 @@ class LevelSolver {
 
     bool get_last_solve() const { return lastSolve; }
 
+    clock_t eval_t = 0;
+    clock_t findcut_t = 0;
+
   private:
     static std::mt19937 rgen;
     const Options &options;

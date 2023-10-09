@@ -40,6 +40,10 @@ class ZigZag {
     int solve_all();
     std::ostream &print_stats(std::ostream &o) {
         for (size_t lev = 0; lev <= levels->qlev_count(); lev++) {
+          o << "c eval_t @ " << lev << ":" << ((double) solvers[lev]->eval_t) / CLOCKS_PER_SEC << std::endl;
+          o << "c findcut_t @ " << lev << ":" << ((double) solvers[lev]->findcut_t) / CLOCKS_PER_SEC << std::endl;
+        }
+        for (size_t lev = 0; lev <= levels->qlev_count(); lev++) {
           o << "c bt_count @ " << lev << ":" << lvl_cflt_cnt[lev] << std::endl;
         }
         return o << "c bt_count:" << conflict_count << std::endl;

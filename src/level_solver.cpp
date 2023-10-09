@@ -65,12 +65,31 @@ bool LevelSolver::solve(const Substitution &assumptions) {
             (*dprn)(i) << std::endl;
         std::cerr << "]" << std::endl;
     }
+    /* TODO this is really generously implemented,
+     * as far as I understand, the point is just to propagate
+     * a partial assignment into the circuit, and collect
+     * all gates that are determined
+     *
+     * this could probably be done much more efficiently by
+     * keeping forward references from nodes, and propagating
+     * in topological order, AND stopping as soon as propagation
+     * is exhausted (one would probably need to reinitialize a
+     * data structure of counters for every run, in order to keep track of
+     * whether and gates are satisfied / or gates falsified
+     */
+    clock_t beg, fin;
+    beg = clock();
     Eval ev(factory, assumptions);
     for (const auto &i : constrs)
         ev(i);
+    fin = clock();
+    eval_t += fin - beg;
+    beg = fin;
     FindCut fc(factory, ev);
     for (const auto &i : constrs)
         fc(i);
+    fin = clock();
+    findcut_t += fin - beg;
     const auto &cut = fc.get_cut();
     SATCLS cut_clause;
     SATCLS_CAPACITY(cut_clause, cut.size());
