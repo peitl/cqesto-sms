@@ -118,10 +118,11 @@ elseif(USE_CMS)
 elseif(USE_SMS)
   message(STATUS "Using SMS")
   include_directories(contrib/minisat/include)
-  include_directories(../sms-cpp-impl/src)
+  find_path(SMS_INCLUDE_DIR "sms.hpp" PATH_SUFFIXES "sms")
+  include_directories("${SMS_INCLUDE_DIR}")
   find_library(CADICAL_LIBRARY
     NAMES cadical
-    HINTS "../sms-cpp-impl/cadical-master/build"
+	#HINTS "../sms-cpp-impl/cadical-master/build"
     )
   if(NOT CADICAL_LIBRARY)
     message(FATAL_ERROR "CADICAL library not found")
