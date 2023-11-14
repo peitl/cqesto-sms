@@ -89,7 +89,7 @@ fi
 if [ $sms = yes ]
 then
   CMKFLAGS="$CMKFLAGS -DUSE_SMS=ON"
-  msg "expecting libsms.a and libcadical.a (with IPASIR-UP; the copy used to build SMS) on library path"
+  msg "expecting libsms_static.a and libcadical.a (with IPASIR-UP; the copy used to build SMS) on library path"
   msg "expecting SMS headers in a subdirectory called sms on the system include path"
 else
   CMKFLAGS="$CMKFLAGS -DUSE_SMS=OFF"

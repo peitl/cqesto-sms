@@ -133,18 +133,18 @@ elseif(USE_SMS)
   set_target_properties(cadical PROPERTIES IMPORTED_LOCATION ${CADICAL_LIBRARY})
 
   find_library(SMS_LIBRARY
-    NAMES sms
+    NAMES sms_static
     )
   if(NOT SMS_LIBRARY)
 	message(FATAL_ERROR "SMS library not found")
   else()
 	message(STATUS "Found ${SMS_LIBRARY}")
   endif()
-  add_library(sms STATIC IMPORTED GLOBAL)
-  set_target_properties(sms PROPERTIES IMPORTED_LOCATION ${SMS_LIBRARY})
+  add_library(sms_static STATIC IMPORTED GLOBAL)
+  set_target_properties(sms_static PROPERTIES IMPORTED_LOCATION ${SMS_LIBRARY})
 
   target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE USE_SMS=1)
-  target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC sms cadical)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC sms_static cadical)
 else()
   include_directories(contrib/minisat/include)
   message(STATUS "Using minisat")
