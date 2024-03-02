@@ -12,6 +12,7 @@ usage: configure [-h|--help][-g|--debug][-e|--expert]
 -c | --cadical compile with cadical instead of minisat
 -p | --prof compilation with profiling
 -r | --cms compile with cryptominisat (cms) instead of minisat
+-m | --sms compile with SAT modulo symmetries (SMS) for graph enumeration (cadical backend)
 -s | --static compile static
 EOF
 }
@@ -30,6 +31,7 @@ cadical=no
 cms=no
 prof=no
 static=no
+sms=no
 
 while [ $# -gt 0 ]
 do
@@ -38,6 +40,7 @@ do
     -g|--debug) debug=yes;;
     -c|--cadical) cadical=yes;;
     -r|--cms) cms=yes;;
+    -m|--sms) sms=yes;;
     -p|--prof) prof=yes;;
     -s|--static) static=yes;;
     *) die "invalid option '$1' (try '-h')";;
@@ -84,6 +87,23 @@ then
 	fi
 else
   CMKFLAGS="$CMKFLAGS -DUSE_CADICAL=OFF"
+fi
+
+if [ -d "contrib/minisat" ]; then
+  msg "assuming that minisat is already set up"
+else
+  msg "setting up minisat SAT solver"
+  (cd contrib ; ./setup-minisat.sh)
+  msg "solver done"
+fi
+
+if [ $sms = yes ]
+then
+  CMKFLAGS="$CMKFLAGS -DUSE_SMS=ON"
+  msg "expecting libsms_static.a and libcadical.a (with IPASIR-UP; the copy used to build SMS) on library path"
+  msg "expecting SMS headers in a subdirectory called sms on the system include path"
+else
+  CMKFLAGS="$CMKFLAGS -DUSE_SMS=OFF"
 fi
 
 if [ -d "contrib/minisat" ]; then

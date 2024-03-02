@@ -6,6 +6,12 @@
  */
 #pragma once
 #include <string>
+
+class SMSOptions {
+  public:
+    int vertices;
+};
+
 class Options {
   public:
     Options() {}
@@ -22,6 +28,7 @@ class Options {
     bool enumerate;
     bool simple_cut;
     int verbose;
+    SMSOptions sms_args;
 
     bool has_free = false;
 };

@@ -27,6 +27,14 @@ LevelSolver::LevelSolver(const Options &options, StatisticsManager &stats,
                          const LevelInfo &levs)
     : options(options), m_statistics(stats), factory(factory), lev(lev),
       levs(levs), is_last(levs.qlev_count() <= lev),
+#ifdef USE_SMS
+    sat(
+        SATSOLVER(
+          lev == 0 ? options.sms_args.vertices : 2
+          , 20000
+          )
+        ),
+#endif
       enc(factory, sat, variable_manager), simpl(options, factory, enc),
       pol(factory, enc), eval(factory), mql(factory, plvars, levs) {}
 

@@ -88,6 +88,7 @@ int main(int argc, char **argv) {
            "the whole set of variables in the first block.")
         ->default_val(false);
     app.add_flag("-v", options.verbose, "Add verbosity.")->default_val(0);
+    app.add_option("-n", options.sms_args.vertices, "when using SMS, pass the number of vertices here");
     CLI11_PARSE(app, argc, argv);
 
     const bool use_std = options.file_name == "-";
