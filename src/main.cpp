@@ -4,112 +4,140 @@
  * Created on:  Fri, May 15, 2015 2:40:53 PM
  * Copyright (C) 2015, Mikolas Janota
  */
+#include "CLI11.hpp"
+#include "expressions.h"
+#include "options.h"
+#include "qesto_qcir_parser.h"
+#include "qtypes.h"
+#include "variable_manager.h"
+#include "version.h"
+#include "visitor.h"
+#include "zigzag.h"
 #include <signal.h>
 #include <string>
-#include "qcir_parse.tab.h"
-#include "Expressions.h"
-#include "VariableManager.h"
-#include "Visitors.h"
-#include "qtypes.h"
-#include "ZigZag.h"
-#include "Options.h"
-#include "defs.h"
 using namespace std;
-void read_qcir(string filename);
-using qesto::ZigZag;
-extern qesto::Expressions* exf;
-extern qesto::QFla qcir_qfla;
-extern qesto::VariableManager qcir_vmng;
-extern unordered_map<const char*,int,cstrHash,cstrEq> name2var;
-namespace qesto { NiceExpressionPrinter* dprn; }
 
-ZigZag* ps=NULL;
+qesto::ZigZag *ps = NULL;
 static void SIG_handler(int signum);
-ostream& print_usage(const Options& options,ostream& o);
 
-unordered_map<int,const char*> var2name;
-int main(int argc, char** argv) {
+unordered_map<int, std::string> var2name;
+int main(int argc, char **argv) {
 #ifndef NDEBUG
-  cout << "c DEBUG version." << endl;
-#endif
-#ifdef STATICLN
-  cout << "c STATIC version." << endl;
-#else
-  cout << "c DYNLINK version." << endl;
+    cout << "c DEBUG version." << endl;
+    cout << "c Should not be used for heavy computation!" << endl;
 #endif
 
 #ifdef USE_IPASIR
-    cout << "c solver IPASIR (cadical)" << endl;
-#endif/*USE_IPASIR*/
+    cout << "c solver cadical (via IPASIR)" << endl;
+#endif /*USE_IPASIR*/
 #ifdef USE_MINISAT
     cout << "c solver MINISAT" << endl;
-#endif/*USE_MINISAT*/
+#endif /*USE_MINISAT*/
+#ifdef USE_CMS
+    cout << "c solver cryptominisat5" << endl;
+#endif /*USE_IPASIR*/
 
 #ifndef __MINGW32__
-  signal(SIGHUP, SIG_handler);
-  signal(SIGUSR1, SIG_handler);
+    signal(SIGHUP, SIG_handler);
+    signal(SIGUSR1, SIG_handler);
 #else
-  cout << "c MINGW version." << endl;
+    cout << "c MINGW version." << endl;
 #endif
-  cout<<"c cqesto, v00.0, "<<GITHEAD<<endl;
-  cout<<"c (C) 2015 Mikolas Janota, mikolas.janota@gmail.com"<<endl;
-  signal(SIGTERM, SIG_handler);
-  signal(SIGINT, SIG_handler);
-  signal(SIGABRT, SIG_handler);
-#ifndef EXPERT
-  // prepare nonexpert options
-  const int nargc = 3;
-  char* nargv[nargc];
-  nargv[0] = argv[0];
-  nargv[1] = strdup("-es");
-  nargv[2] = argc>=2 ? argv[1] : strdup("-");
-  if (argc>2) {
-    cerr<<"ERROR: ingoring some options after FILENAME"<<std::endl;
-    return 100;
-  }
-  argv=nargv;
-  argc=nargc;
-#else
-  cout<<"c WARNING: running in the EXPERT mode, I'm very stupid without any options."<<std::endl;
+    cout << "c cqesto, v01.0, " << Version::GIT_SHA1 << ", "
+         << Version::GIT_DATE << endl;
+    cout << "c (C) 2015 Mikolas Janota, mikolas.janota@gmail.com" << endl;
+    signal(SIGTERM, SIG_handler);
+    signal(SIGINT, SIG_handler);
+    signal(SIGABRT, SIG_handler);
+
+    CLI::App app("cqesto non-CNF QBF solver.");
+    Options options;
+    app.add_option("file_name", options.file_name,
+                   "Input file name, use - (dash) or empty for stdin.")
+        ->default_val("-");
+    app.add_flag("-a, !--no-a", options.aig, "Use only AND gates.")
+        ->default_val(false);
+    app.add_flag("-s, !--no-s", options.simplify, "Use simplification.")
+        ->default_val(true);
+    app.add_flag("-u, !--no-u", options.unit, "Use unit propagation.")
+        ->default_val(true);
+    app.add_flag("-f, !--no-f", options.flatten, "Use flattening.")
+        ->default_val(false);
+    app.add_flag("-l, !--no-l", options.luby_restart, "Use luby restarts.")
+        ->default_val(false);
+    app.add_flag("-p, !--no-p", options.polarities, "Set variable polarities.")
+        ->default_val(false);
+    app.add_flag("-e, !--no-e", options.full,
+                 "Initialize all abstractions with the input formula right at "
+                 "the beginning.")
+        ->default_val(true);
+    app.add_flag(
+           "-X, --enumerate", options.enumerate,
+           "Enumerate solutions. If free variables are given, they are "
+           "merged with the first quantifier block and winning moves of the "
+           "first block quantifier are enumerated over the free variables. If "
+           "no free variables are given, solutions are just enumerated over "
+           "the whole set of variables in the first block.")
+        ->default_val(false);
+    app.add_flag("-v", options.verbose, "Add verbosity.")->default_val(0);
+    CLI11_PARSE(app, argc, argv);
+
+    const bool use_std = options.file_name == "-";
+    gzFile in =
+        use_std ? gzdopen(0, "rb") : gzopen(options.file_name.c_str(), "rb");
+    if (in == nullptr) {
+        cerr << "ERROR! Could not open file: " << options.file_name << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    auto factory = new qesto::Expressions(options);
+    StreamBuffer buf(in);
+    qesto::QestoQCIRParser parser(buf, *factory);
+    if (options.file_name != "-")
+        parser.d_filename = options.file_name;
+    parser.parse();
+    gzclose(in);
+
+    if (!options.enumerate && !parser.formula().free.empty()) {
+        cerr << "ERROR! Free variables not supported: " << options.file_name
+             << endl;
+        exit(EXIT_FAILURE);
+    }
+    if (!parser.found_header()) {
+        cerr << "WARNING! missing header." << endl;
+    }
+
+    options.has_free = parser.has_free();
+
+    for (auto i : parser.name2var())
+        var2name[i.second] = i.first;
+    qesto::NiceExpressionPrinter dprn(*factory, var2name, cout);
+    ps = new qesto::ZigZag(options, *factory, parser.formula(), dprn);
+    bool res;
+    if (options.enumerate) {
+        const int count = ps->solve_all();
+        res = count > 0;
+        std::cout << "c found " << count << " models" << std::endl;
+    } else {
+        res = ps->solve();
+    }
+    std::cout << "c solved " << read_cpu_time() << std::endl;
+    ps->print_stats(cerr);
+    std::cout << "s cnf " << (res ? '1' : '0') << std::endl;
+#ifndef NDEBUG
+    delete ps;
+    delete factory;
 #endif
-  Options options;
-  if (!options.parse(argc, argv)) {
-    cerr << "ERROR: processing options." << endl;
-    print_usage(options,cerr);
-    return 100;
-  }
-  auto& rest = options.get_rest();
-  if (rest.size()>1)
-    cerr<<"WARNING: garbage at the end of command line."<<endl;
-
-  if (options.get_help()){
-    print_usage(options,cout);
-    return 0;
-  }
-
-  const string flafile(rest.size() ? rest[0] : "-");
-  exf=new qesto::Expressions(options);
-  read_qcir(flafile);
-  FOR_EACH(i,name2var)var2name[i->second]=i->first;
-  qesto::dprn=new qesto::NiceExpressionPrinter(*exf,var2name,cerr);
-  ps=new ZigZag(options,*exf,qcir_qfla);
-  const bool r=ps->solve();
-  std::cout<<"c solved "<<read_cpu_time()<<std::endl;
-  ps->print_stats(cerr);
-  std::cout<<"s cnf "<<(r?'1':'0')<<std::endl;
-  exit(r ? 10 : 20);
-  return r ? 10 : 20;
+    exit(res ? 10 : 20);
+    return res ? 10 : 20;
 }
 
 static void SIG_handler(int signum) {
-  if(ps) ps->print_stats(cerr);
-  else cerr<<"c Solver not yet initialized."<<endl;
-  cerr<<"# received external signal " << signum << endl;
-  cerr<<"Terminating ..." << endl;
-  exit(0);
-}
-
-ostream& print_usage(const Options& options,ostream& o) {
-  o << "USAGE: [OPTIONS] [FILENAME]" << endl;
-  return options.print(o);
+    if (ps)
+        ps->print_stats(cerr);
+    else
+        cerr << "c Solver not yet initialized." << endl;
+    cerr << "# received external signal " << signum << endl;
+    cerr << "Terminating ..." << endl;
+    exit(0);
 }

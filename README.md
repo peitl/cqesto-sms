@@ -3,16 +3,18 @@ A circuit-based QBF solver. The underlying algorithm is explained in [1].  It
 is a continuation of the  clause-selection algorithm [2].
 
 # Building
-     cd src && make
+Ideally, this should work out-of-the-box:
 
-Somethings are configurable upon build. Please see the `Makefile`.
+     ./configure [OPTIONS] && cd build && make
 
-##  Back-end SAT solver
+See `./configure -h` for configurations.
 
-`cqesto`  comes with `minisat`  prepackaged.  However, you may choose to use cadical  (communicating through the ipasir interface).
-To use cadical:
+The configure script is responsible for downloading and compiling the selected SAT solver.
 
-     cd src/cadical && ./setmeup.sh && cd .. && make USE_IPASIR=1 clean all
+Remark on the cmake required version: it's at 3.24 at this point because it
+lets me force static for zlib. If you don't care about static compilation,
+lower versions of cmake should also work.
+
 
 #  REFERENCES
 
